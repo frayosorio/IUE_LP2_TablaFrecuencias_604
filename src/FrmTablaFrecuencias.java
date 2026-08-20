@@ -4,6 +4,7 @@ import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
@@ -19,9 +20,14 @@ public class FrmTablaFrecuencias extends JFrame {
             "Frecuencia relativa (fr)",
             "Frecuencia porcentual (%f)" };
     private String[][] datosFrecuencias;
-    JComboBox cmbRespuesta;
-    JList lstRespuestas;
-    JTable tblFrecuencias;
+    private JComboBox cmbRespuesta;
+    private JList lstRespuestas;
+    private JTable tblFrecuencias;
+
+    private final int MAXIMAS_RESPUESTAS = 1000;
+
+    private String[] respuestas = new String[MAXIMAS_RESPUESTAS];
+    private int totalRespuestas = -1;
 
     // metodo constructor (dibujado de la interfaz gráfica)
     public FrmTablaFrecuencias() {
@@ -89,5 +95,90 @@ public class FrmTablaFrecuencias extends JFrame {
         DefaultTableModel dtm = new DefaultTableModel(datosFrecuencias, encabezados);
         tblFrecuencias.setModel(dtm);
 
+        // eventos
+        btnAgregar.addActionListener(eventos -> {
+            agregarRespuesta();
+        });
+        btnQuitar.addActionListener(eventos -> {
+            quitarRespuesta();
+        });
+        btnCalcular.addActionListener(eventos -> {
+            calcularFrecuencias();
+        });
+
+    }
+
+    private void agregarRespuesta() {
+        if (totalRespuestas < MAXIMAS_RESPUESTAS) {
+            totalRespuestas++;
+            respuestas[totalRespuestas] = cmbRespuesta.getSelectedItem().toString();
+            mostrarRespuestas();
+        } else {
+            JOptionPane.showMessageDialog(null, "No se pueden agregar más respuestas");
+        }
+    }
+
+    private void mostrarRespuestas() {
+        // crear un arreglo para incluir solo las respuestas dadas
+        String[] respuestasAMostrar = new String[totalRespuestas + 1];
+        // recorrer todas las respuestas agregadas
+        for (int i = 0; i <= totalRespuestas; i++) {
+            respuestasAMostrar[i] = respuestas[i];
+        }
+        // asignamos al modelo de datos del JLIST
+        lstRespuestas.setListData(respuestasAMostrar);
+    }
+
+    private void quitarRespuesta() {
+        // validar que el usuario escogió un elemento del JLIST
+        if (lstRespuestas.getSelectedIndex() >= 0) {
+            int posicion = lstRespuestas.getSelectedIndex();
+            for (int i = posicion; i < totalRespuestas; i++) {
+                respuestas[i] = respuestas[i + 1];
+            }
+            totalRespuestas--;
+            mostrarRespuestas();
+        } else {
+            JOptionPane.showMessageDialog(null, "Debe seleccionar la respuesta a quitar");
+        }
+    }
+
+    private void calcularFrecuencias() {
+        // matriz para calcular las frecuencias
+        double[][] frecuencias = new double[variable.length][4];
+        // recorrer todas las respuestas agregadas para calcular la FRECUENCIA ABSOLUTA
+        for (int i = 0; i <= totalRespuestas; i++) {
+            // buscar la posicion de la respuesta en la variable
+            for (int j = 0; j < variable.length; j++) {
+                if (respuestas[i].equals(variable[j])) {
+                    frecuencias[j][0]++;
+                    break;
+                }
+            }
+        }
+        // pasar los resultados a la matriz del JTABLE
+        for (int i = 0; i < variable.length; i++) {
+            // ***** calcular la frecuencia acumulada *****
+            if (i == 0) {
+                frecuencias[i][1] = frecuencias[i][0];
+            } else {
+                frecuencias[i][1] = frecuencias[i][0] + frecuencias[i - 1][1];
+            }
+
+            // ***** calcular la frecuencia relativa *****
+            frecuencias[i][2] = frecuencias[i][0] / (totalRespuestas + 1);
+
+            // ***** calcular la frecuencia porcentual *****
+            frecuencias[i][3] = frecuencias[i][2] * 100;
+
+            datosFrecuencias[i][1] = String.valueOf(frecuencias[i][0]);
+            datosFrecuencias[i][2] = String.valueOf(frecuencias[i][1]);
+            datosFrecuencias[i][3] = String.valueOf(frecuencias[i][2]);
+            datosFrecuencias[i][4] = String.valueOf(frecuencias[i][3]);
+        }
+
+        // mostrar los resultados
+        DefaultTableModel dtm = new DefaultTableModel(datosFrecuencias, encabezados);
+        tblFrecuencias.setModel(dtm);
     }
 }
